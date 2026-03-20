@@ -3,5 +3,4 @@ pandas
 scikit-learn
 matplotlib
 ipykernel
-statsmodels.tsa.arima.model
-statsmodels.tsa.statespace.sarimax
+statsmodels
