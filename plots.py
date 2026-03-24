@@ -11,10 +11,10 @@ from statsmodels.tsa.statespace.sarimax import SARIMAX
 BRANCHES  = ["Pittsburgh", "Philadelphia", "Allendale", "Dallas", "Baltimore"]
 SUBTYPES  = ["Accessories", "Respiratory", "Infusion"] #REVISIT THIS PLEASE
 
-SERIES_START = "2022-07-01"
+SERIES_START = "2023-01-01"
 SERIES_END   = "2025-12-31"
 
-FORECAST_START = "2025-07-21"
+FORECAST_START = "2025-06-01"
 
 #read in the data
 df = pd.read_csv('/Users/GeorgiaSiegel/OneDrive - US Med-Equip, LLC/Desktop/hydras-data-analytics-project/data/clean/cleaned_data_NEW.csv')
