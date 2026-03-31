@@ -22,7 +22,7 @@ EWMA_SPAN = 12
 df = pd.read_csv('/Users/GeorgiaSiegel/OneDrive - US Med-Equip, LLC/Desktop/hydras-data-analytics-project/data/clean/cleaned_data_NEW.csv')
 print("Number of rows in our current dataset: ", df.shape[0])
 
-df["CallDateTime"] = pd.to_datetime(df["CallDateTime"])
+df["Delivery_CallDateTime"] = pd.to_datetime(df["Delivery_CallDateTime"])
 df["EndDateTime"]  = pd.to_datetime(df["EndDateTime"])
 
 
@@ -41,7 +41,7 @@ def build_time_series(df, branch, subtype, start=SERIES_START, end=SERIES_END):
     for week_start in weeks:
         week_end = week_start + pd.Timedelta(days=6)
         active = (
-            (df_f["CallDateTime"] <= week_end) &
+            (df_f["Delivery_CallDateTime"] <= week_end) &
             (df_f["EndDateTime"]  >= week_start)
         ).sum()
         counts.append(active)
