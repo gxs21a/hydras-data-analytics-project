@@ -4,12 +4,11 @@ import matplotlib.pyplot as plt
 from statsmodels.tsa.arima.model import ARIMA
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 
-
 # =====================================================
 # CONFIG — hardcode your targets here
 # =====================================================
-BRANCHES  = ["Pittsburgh", "Philadelphia", "Allendale", "Dallas", "Baltimore"]
-SUBTYPES  = ["Accessories", "Respiratory", "Infusion"] #REVISIT THIS PLEASE
+BRANCHES  = ["Pittsburgh", "Dallas"]
+SUBTYPES  = ["Respiratory", "Accessories"] #REVISIT THIS PLEASE
 
 SERIES_START = "2023-01-01"
 SERIES_END   = "2025-12-31"
