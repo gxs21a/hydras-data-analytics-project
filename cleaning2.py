@@ -108,11 +108,30 @@ CITY_MAP_DICT = {
 # Substitute dictionary of cities — DO NOT touch branches not included in the dictionary
 data["Delivery_BranchName"] = data["Delivery_BranchName"].map(CITY_MAP_DICT).fillna(data["Delivery_BranchName"])
 
+# --- Merge ModelSubTypeName from models lookup ---
+model_df = pd.read_csv('/Users/GeorgiaSiegel/OneDrive - US Med-Equip, LLC/Desktop/hydras-data-analytics-project/data/raw/models.csv', encoding='latin1')
+
+model_df["ModelID"] = model_df["ModelID"].astype(str).str.strip()
+data["ModelID"] = data["ModelID"].astype(str).str.strip()
+
+model_lookup = (
+    model_df[["ModelID", "ModelSubTypeName"]]
+    .drop_duplicates(subset="ModelID")
+)
+
+data = data.merge(
+    model_lookup,
+    on="ModelID",
+    how="left",
+    validate="many_to_one"
+)
+
+print("ModelSubTypeName nulls after merge: ", data["ModelSubTypeName"].isna().sum())
+print("Sample ModelSubTypeName values:\n", data["ModelSubTypeName"].value_counts().head(10))
 
 ## Feature Engineering:
 # Create `RentalDuration` column
 data["RentalDuration"] = data["EndDateTime"] - data["StartDateTime"]
-
 
 # Plot of Rental Duration
 plt.hist((data["RentalDuration"].dt.days))
