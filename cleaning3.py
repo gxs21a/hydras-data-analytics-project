@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
 
-
 # =====================================================
 # LOAD RAW DATA
 # =====================================================
@@ -11,7 +10,6 @@ data = pd.read_csv(
 )
 
 print("Raw rows:", data.shape[0])
-
 
 # =====================================================
 # BASIC CLEANING
@@ -25,7 +23,6 @@ data = data.dropna(subset=["ModelTypeName"])
 print("IsVoid == 1:", data[data["IsVoid"] == 1].shape[0])
 data = data[data["IsVoid"] != 1]
 
-
 # =====================================================
 # DATE CONVERSION
 # =====================================================
@@ -33,10 +30,8 @@ data["StartDateTime"] = pd.to_datetime(data["StartDateTime"])
 data["EndDateTime"] = pd.to_datetime(data["EndDateTime"])
 data["Delivery_CallDateTime"] = pd.to_datetime(data["Delivery_CallDateTime"])
 
-
 START_DATE = "2022-07-01"
 END_DATE   = "2025-12-31"
-
 
 # Filter time window
 data = data[
@@ -51,9 +46,7 @@ data["EndDateTime"] = data["EndDateTime"].fillna(pd.Timestamp(END_DATE))
 data = data[data["EndDateTime"] <= END_DATE]
 data = data[data["EndDateTime"] > data["StartDateTime"]]
 
-
 print("Rows after date cleaning:", data.shape[0])
-
 
 # =====================================================
 # BRANCH CLEANING
@@ -99,9 +92,8 @@ data["Delivery_BranchName"] = data["Delivery_BranchName"].map(CITY_MAP_DICT).fil
     data["Delivery_BranchName"]
 )
 
-
 # =====================================================
-# 🔥 MODEL SUBTYPE MERGE (FIXED VERSION)
+# MODEL SUBTYPE MERGE (FIXED VERSION)
 # =====================================================
 
 # Load model lookup
@@ -109,7 +101,6 @@ model_df = pd.read_csv(
     '/Users/GeorgiaSiegel/OneDrive - US Med-Equip, LLC/Desktop/hydras-data-analytics-project/data/raw/models.csv',
     encoding='latin1'
 )
-
 
 # ---- CLEAN ModelID (CRITICAL FIX) ----
 def clean_model_id(col):
@@ -119,10 +110,8 @@ def clean_model_id(col):
         .str.replace(r"\.0$", "", regex=True)
     )
 
-
 data["ModelID"] = clean_model_id(data["ModelID"])
 model_df["ModelID"] = clean_model_id(model_df["ModelID"])
-
 
 # ---- DEBUG: ID overlap ----
 print("\nMODELID DIAGNOSTICS")
@@ -134,13 +123,11 @@ print("Unique model lookup IDs:", len(model_ids))
 print("Matching IDs:", len(data_ids & model_ids))
 print("Missing in lookup:", len(data_ids - model_ids))
 
-
 # ---- CLEAN LOOKUP ----
 model_lookup = (
     model_df[["ModelID", "ModelSubTypeName"]]
     .drop_duplicates(subset="ModelID")
 )
-
 
 # ---- MERGE ----
 data = data.merge(
@@ -149,14 +136,12 @@ data = data.merge(
     how="left"
 )
 
-
 # ---- POST-MERGE CHECK ----
 nulls = data["ModelSubTypeName"].isna().sum()
 
 print("\nPOST-MERGE CHECK")
 print("Null ModelSubTypeName:", nulls)
 print("Percent missing:", round(nulls / len(data) * 100, 2), "%")
-
 
 # Show examples of missing matches
 missing_examples = (
@@ -166,7 +151,6 @@ missing_examples = (
 
 print("\nSample missing ModelIDs:", missing_examples)
 
-
 # =====================================================
 # FEATURE ENGINEERING
 # =====================================================
@@ -175,7 +159,6 @@ data["RentalDuration"] = data["EndDateTime"] - data["StartDateTime"]
 
 print("\nRental duration summary:")
 print(data["RentalDuration"].describe())
-
 
 # =====================================================
 # QUICK CHECK PLOT

@@ -4,7 +4,6 @@ from statsmodels.tsa.arima.model import ARIMA
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 
-
 # =====================================================
 # CONFIG
 # =====================================================
@@ -17,7 +16,6 @@ FORECAST_START = "2025-06-01"
 
 EWMA_SPAN = 12
 
-
 # =====================================================
 # LOAD DATA
 # =====================================================
@@ -27,11 +25,9 @@ df = pd.read_csv(
 
 print("Number of rows in dataset: ", df.shape[0])
 
-
 # Convert to datetime
 df["Delivery_CallDateTime"] = pd.to_datetime(df["Delivery_CallDateTime"])
 df["EndDateTime"] = pd.to_datetime(df["EndDateTime"])
-
 
 # =====================================================
 # CLEAN SUBTYPE COLUMN (IMPORTANT)
@@ -39,11 +35,9 @@ df["EndDateTime"] = pd.to_datetime(df["EndDateTime"])
 df = df.dropna(subset=["ModelSubTypeName"])
 df = df[df["ModelSubTypeName"] != "Unknown"]
 
-
 # Quick sanity check
 print("\nTop ModelSubTypeName values:")
 print(df["ModelSubTypeName"].value_counts().head(10))
-
 
 # =====================================================
 # HELPERS
