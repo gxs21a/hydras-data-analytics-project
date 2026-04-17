@@ -1,52 +1,58 @@
 import pandas as pd
+import matplotlib.pyplot as plt
 import numpy as np
 
-# =====================================================
-# LOAD RAW DATA
-# =====================================================
-data = pd.read_csv(
-    '/Users/GeorgiaSiegel/OneDrive - US Med-Equip, LLC/Desktop/hydras-data-analytics-project/data/raw/rentals.csv',
-    low_memory=False
-)
+data = pd.read_csv('/Users/GeorgiaSiegel/OneDrive - US Med-Equip, LLC/Desktop/hydras-data-analytics-project/data/raw/rentals.csv', low_memory=False)
+print("Number of rows in raw data: ", data.shape[0])
 
-print("Raw rows:", data.shape[0])
-
-# =====================================================
-# BASIC CLEANING
-# =====================================================
-
-# Remove Unknown + null ModelTypeName
+# ModelTypeName -> Drop `Unknown` and missing
 data = data[data["ModelTypeName"] != "Unknown"]
 data = data.dropna(subset=["ModelTypeName"])
 
-# Remove voided transactions
-print("IsVoid == 1:", data[data["IsVoid"] == 1].shape[0])
+# Removing voided model transactions (where IsVoid == 1)
+print("Number of IsVoid == 1: ", data[data["IsVoid"] == 1].shape[0])
 data = data[data["IsVoid"] != 1]
 
-# =====================================================
-# DATE CONVERSION
-# =====================================================
+# Convert to datetime format
 data["StartDateTime"] = pd.to_datetime(data["StartDateTime"])
 data["EndDateTime"] = pd.to_datetime(data["EndDateTime"])
-data["Delivery_CallDateTime"] = pd.to_datetime(data["Delivery_CallDateTime"])
+data["Delivery_CallDateTime"] = pd.to_datetime(data["Delivery_CallDateTime"])  # NEW
 
 START_DATE = "2022-07-01"
-END_DATE   = "2025-12-31"
+END_DATE = "2025-12-31"
 
-# Filter time window
+# Only keep StartDateTime between start and end date
 data = data[
-    (data["StartDateTime"] >= START_DATE) &
-    (data["StartDateTime"] <= END_DATE)
+    (data["StartDateTime"] >= START_DATE)
+    & (data["StartDateTime"] <= END_DATE)
 ]
 
-# Fill missing end dates
+# Fill missing EndDateTime with end date
 data["EndDateTime"] = data["EndDateTime"].fillna(pd.Timestamp(END_DATE))
 
-# Remove invalid ranges
+# Cut off EndDateTime in 2026
 data = data[data["EndDateTime"] <= END_DATE]
+
+# Drop rows where StartDateTime is after EndDateTime
 data = data[data["EndDateTime"] > data["StartDateTime"]]
 
-print("Rows after date cleaning:", data.shape[0])
+# --- Delivery_CallDateTime checks (timeseries sanity) ---                          # NEW
+print("\n--- Delivery_CallDateTime Diagnostics ---")                                 # NEW
+print("Missing Delivery_CallDateTime:     ", data["Delivery_CallDateTime"].isna().sum())     # NEW
+print("Delivery_CallDateTime range:       ", data["Delivery_CallDateTime"].min(),            # NEW
+      " to ", data["Delivery_CallDateTime"].max())                                   # NEW
+# Flag rows where Delivery_CallDateTime falls outside the study window               # NEW
+out_of_window = data[                                                       # NEW
+    (data["Delivery_CallDateTime"] < START_DATE)                                     # NEW
+    | (data["Delivery_CallDateTime"] > END_DATE)                                     # NEW
+]                                                                           # NEW
+print("Delivery_CallDateTime out of window:", out_of_window.shape[0])               # NEW
+# Flag rows where Delivery_CallDateTime is after StartDateTime (likely data issue)   # NEW
+call_after_start = data[data["Delivery_CallDateTime"] > data["StartDateTime"]]      # NEW
+print("Delivery_CallDateTime after StartDateTime:", call_after_start.shape[0])      # NEW
+# -----------------------------------------------                          # NEW
+
+print("\nNumber of rows in cleaned data: ", data.shape[0])
 
 # =====================================================
 # BRANCH CLEANING
@@ -181,4 +187,3 @@ output_path = '/Users/GeorgiaSiegel/OneDrive - US Med-Equip, LLC/Desktop/hydras-
 data.to_csv(output_path, index=False)
 
 print("\nSaved cleaned dataset to:", output_path)
-
