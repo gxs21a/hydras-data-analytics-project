@@ -122,7 +122,6 @@ COL_TITLES = [
     "Holt-Winters ETS\n(recency built-in)",
 ]
 
-
 fig, axes = plt.subplots(
     nrows=len(BRANCHES),
     ncols=5,
@@ -135,7 +134,6 @@ fig.suptitle(
     fontsize=14,
     y=1.01
 )
-
 
 # =====================================================
 # MAIN LOOP
@@ -254,7 +252,6 @@ for r, branch in enumerate(BRANCHES):
         ax.set_xlabel("Week", fontsize=7)
         ax.tick_params(axis="x", labelsize=6, rotation=30)
         ax.legend(fontsize=6)
-
 
 plt.tight_layout()
 plt.show()
