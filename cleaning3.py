@@ -27,30 +27,15 @@ data = data[
     & (data["StartDateTime"] <= END_DATE)
 ]
 
-# Fill missing EndDateTime with end date
-data["EndDateTime"] = data["EndDateTime"].fillna(pd.Timestamp(END_DATE))
+# Fill missing EndDateTime with end date ADJUST HERE AS NEEDED!!
+#data["EndDateTime"] = data["EndDateTime"].fillna(pd.Timestamp(END_DATE))
 
 # Cut off EndDateTime in 2026
 data = data[data["EndDateTime"] <= END_DATE]
 
-# Drop rows where StartDateTime is after EndDateTime
+# Drop rows where StartDateTime OR Delivery_CallDateTime is after EndDateTime
 data = data[data["EndDateTime"] > data["StartDateTime"]]
-
-# --- Delivery_CallDateTime checks (timeseries sanity) ---                          # NEW
-print("\n--- Delivery_CallDateTime Diagnostics ---")                                 # NEW
-print("Missing Delivery_CallDateTime:     ", data["Delivery_CallDateTime"].isna().sum())     # NEW
-print("Delivery_CallDateTime range:       ", data["Delivery_CallDateTime"].min(),            # NEW
-      " to ", data["Delivery_CallDateTime"].max())                                   # NEW
-# Flag rows where Delivery_CallDateTime falls outside the study window               # NEW
-out_of_window = data[                                                       # NEW
-    (data["Delivery_CallDateTime"] < START_DATE)                                     # NEW
-    | (data["Delivery_CallDateTime"] > END_DATE)                                     # NEW
-]                                                                           # NEW
-print("Delivery_CallDateTime out of window:", out_of_window.shape[0])               # NEW
-# Flag rows where Delivery_CallDateTime is after StartDateTime (likely data issue)   # NEW
-call_after_start = data[data["Delivery_CallDateTime"] > data["StartDateTime"]]      # NEW
-print("Delivery_CallDateTime after StartDateTime:", call_after_start.shape[0])      # NEW
-# -----------------------------------------------                          # NEW
+data = data[data["EndDateTime"] > data["Delivery_CallDateTime"]]
 
 print("\nNumber of rows in cleaned data: ", data.shape[0])
 

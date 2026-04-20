@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-data = pd.read_csv('/Users/GeorgiaSiegel/OneDrive - US Med-Equip, LLC/Desktop/hydras-data-analytics-project/data/raw/rentals.csv', low_memory=False)
+data = pd.read_csv('/Users/GeorgiaSiegel/OneDrive - US Med-Equip, LLC/Desktop/hydras-data-analytics-project/data/raw/rentals_all.csv', low_memory=False)
 print("Number of rows in raw data: ", data.shape[0])
 
 
@@ -24,7 +24,7 @@ data["Delivery_CallDateTime"] = pd.to_datetime(data["Delivery_CallDateTime"])  #
 
 
 START_DATE = "2022-07-01"
-END_DATE = "2025-12-31"
+END_DATE = "2026-03-30"
 
 
 # Only keep StartDateTime between start and end date

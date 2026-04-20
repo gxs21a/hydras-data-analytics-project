@@ -28,14 +28,13 @@ SUBTYPES = [
     "Suction Unit",
     "Ventilator",
 ]
-
 N_SIMULATIONS = 2000
 
 # Statuses with KNOWN end dates → sampling pool for bootstrap
 KNOWN_STATUSES = ["Completed", "Active"]
 
 # Statuses with MISSING end dates → need imputation
-MISSING_STATUSES = ["Canceled", "Delivered", "Out For Delivery", "Partial", "Turn Down"]
+MISSING_STATUSES = ["Delivered", "Out For Delivery", "Partial", "Turn Down"]
 
 
 # =====================================================
