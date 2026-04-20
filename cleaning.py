@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
-data = pd.read_csv('/Users/GeorgiaSiegel/OneDrive - US Med-Equip, LLC/Desktop/hydras-data-analytics-project/data/raw/rentals.csv', low_memory=False)
+data = pd.read_csv('/Users/GeorgiaSiegel/OneDrive - US Med-Equip, LLC/Desktop/hydras-data-analytics-project/data/raw/rentals_all.csv', low_memory=False)
 print("Number of rows in raw data: ", data.shape[0])
 
 # ModelTypeName -> Drop `Unknown` and missing
@@ -18,7 +18,7 @@ data["StartDateTime"] = pd.to_datetime(data["StartDateTime"])
 data["EndDateTime"] = pd.to_datetime(data["EndDateTime"])
 
 START_DATE = "2022-07-01"
-END_DATE = "2025-12-31"
+END_DATE = "2026-03-31"
 
 # Only keep StartDateTime between start and end date
 data = data[

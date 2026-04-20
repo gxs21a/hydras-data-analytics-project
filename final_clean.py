@@ -164,6 +164,45 @@ plt.ylabel("Count")
 plt.title("Distribution of Rental Duration (known end dates)")
 plt.show()
 
+# =====================================================
+# CREATE DURATION (in hours or days)
+# =====================================================
+data["RentalDuration"] = (
+    data["EndDateTime"] - data["StartDateTime"]
+).dt.total_seconds()
+
+# =====================================================
+# COMPUTE MEAN DURATION PER MODEL TYPE
+# =====================================================
+mean_duration_by_model = data.groupby("ModelSubTypeName")["RentalDuration"].mean()
+
+# =====================================================
+# FUNCTION TO IMPUTE MISSING END DATES
+# =====================================================
+def impute_end(row):
+    if pd.isna(row["EndDateTime"]):
+        mean_duration = mean_duration_by_model.get(row["ModelSubTypeName"], np.nan)
+
+        # If we somehow don't have a mean (edge case), skip
+        if pd.isna(mean_duration):
+            return np.nan
+
+        return row["StartDateTime"] + pd.to_timedelta(mean_duration, unit="s")
+    
+    return row["EndDateTime"]
+
+# =====================================================
+# APPLY IMPUTATION
+# =====================================================
+data["EndDateTime"] = data.apply(impute_end, axis=1)
+
+# =====================================================
+# OPTIONAL: DROP STILL-MISSING (RARE EDGE CASES)
+# =====================================================
+data = data.dropna(subset=["EndDateTime"])
+
+print("Rows after imputation:", data.shape[0])
+
 
 # =====================================================
 # SAVE CLEAN DATA
