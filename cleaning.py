@@ -25,6 +25,7 @@ data = data[
     (data["StartDateTime"] >= START_DATE)
     & (data["StartDateTime"] <= END_DATE)
 ]
+print("Missing EndDateTime AFTER filtering:", data["EndDateTime"].isna().sum())
 
 # Fill missing EndDateTime with end date
 data["EndDateTime"] = data["EndDateTime"].fillna(pd.Timestamp(END_DATE))
