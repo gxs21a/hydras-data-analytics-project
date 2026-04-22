@@ -7,57 +7,50 @@ from statsmodels.tsa.holtwinters import ExponentialSmoothing
 # =====================================================
 # CONFIG
 # =====================================================
-BRANCHES  = ["Rochester", "Pittsburgh"]
-SUBTYPE   = "Ventilator"   # MUST match ModelSubTypeName exactly
+BRANCHES = ["Dallas", "Pittsburgh"]
+
+TOP_N_SUBTYPES = 3
 
 SERIES_START   = "2023-01-01"
-SERIES_END     = "2026-03-31"
-FORECAST_START = "2025-10-01"  # gives ~26 weeks of test data to forecast against
+SERIES_END     = "2025-12-31"
+FORECAST_START = "2026-01-01"
 
 EWMA_SPAN = 12
 
 # =====================================================
-# LOAD DATA
+# LOAD CLEAN DATA
 # =====================================================
 df = pd.read_csv(
-    '/Users/GeorgiaSiegel/OneDrive - US Med-Equip, LLC/Desktop/hydras-data-analytics-project/data/clean/cleaned_data_NEW_v2.csv',
-    low_memory=False
+    '/Users/GeorgiaSiegel/OneDrive - US Med-Equip, LLC/Desktop/hydras-data-analytics-project/data/clean/cleaned_data_forecasting_v1.csv'
 )
 
-print("Number of rows in dataset: ", df.shape[0])
-
-# Convert to datetime
 df["Delivery_CallDateTime"] = pd.to_datetime(df["Delivery_CallDateTime"])
-df["EndDateTime"] = pd.to_datetime(df["EndDateTime"])
-
-# Strip whitespace from key columns
-df["ModelSubTypeName"] = df["ModelSubTypeName"].str.strip()
-df["Delivery_BranchName"] = df["Delivery_BranchName"].str.strip()
+df["EffectiveEndDateTime"] = pd.to_datetime(df["EffectiveEndDateTime"])
 
 # =====================================================
-# CLEAN SUBTYPE COLUMN
+# SELECT TOP SUBTYPES
 # =====================================================
-df = df.dropna(subset=["ModelSubTypeName"])
-df = df[df["ModelSubTypeName"] != "Unknown"]
+top_subtypes = (
+    df["ModelSubTypeName"]
+    .value_counts()
+    .head(TOP_N_SUBTYPES)
+    .index
+    .tolist()
+)
 
-# Quick sanity check
-print("\nTop ModelSubTypeName values:")
-print(df["ModelSubTypeName"].value_counts().head(10))
+print("Top subtypes:", top_subtypes)
 
 # =====================================================
-# HELPERS
+# BUILD TIME SERIES (FIXED)
 # =====================================================
-def build_time_series(df, branch, subtype, start=SERIES_START, end=SERIES_END):
-    mask = (
+def build_time_series(df, branch, subtype):
+
+    df_f = df[
         (df["Delivery_BranchName"] == branch) &
         (df["ModelSubTypeName"] == subtype)
-    )
+    ].copy()
 
-    df_f = df[mask].copy()
-
-    print(f"\nChecking data for {branch} | {subtype}: {df_f.shape[0]} rows")
-
-    weeks = pd.date_range(start=start, end=end, freq="W-MON")
+    weeks = pd.date_range(start=SERIES_START, end=SERIES_END, freq="W-MON")
 
     counts = []
     for week_start in weeks:
@@ -65,200 +58,102 @@ def build_time_series(df, branch, subtype, start=SERIES_START, end=SERIES_END):
 
         active = (
             (df_f["Delivery_CallDateTime"] <= week_end) &
-            (df_f["EndDateTime"] >= week_start)
+            (df_f["EffectiveEndDateTime"] >= week_start)
         ).sum()
 
         counts.append(active)
 
-    ts = pd.Series(counts, index=weeks, name="units_on_rent")
-    ts.index.name = "week"
+    return pd.Series(counts, index=weeks)
 
-    return ts
+# =====================================================
+# HELPERS
+# =====================================================
+def apply_ewma(ts):
+    return ts.ewm(span=EWMA_SPAN, adjust=False).mean()
 
+def fit_arima(ts):
+    return ARIMA(ts, order=(1,1,1)).fit()
 
-def apply_ewma(ts, span=EWMA_SPAN):
-    return ts.ewm(span=span, adjust=False).mean()
+def fit_sarimax(ts):
+    return SARIMAX(ts, order=(1,1,1), seasonal_order=(1,1,1,52)).fit(disp=False)
 
-
-def fit_arima(ts, order=(1, 1, 1)):
-    model = ARIMA(ts, order=order)
-    return model.fit()
-
-
-def fit_sarimax(ts, order=(1, 1, 1), seasonal_order=(1, 1, 1, 52)):
-    model = SARIMAX(
-        ts,
-        order=order,
-        seasonal_order=seasonal_order,
-        enforce_stationarity=False,
-        enforce_invertibility=False
-    )
-    return model.fit(disp=False)
-
-
-def fit_holtwinters(ts):
-    model = ExponentialSmoothing(
+def fit_hw(ts):
+    return ExponentialSmoothing(
         ts,
         trend="add",
         seasonal="add",
-        seasonal_periods=52,
-        initialization_method="estimated"
-    )
-
-    result = model.fit(optimized=True)
-
-    print(
-        f"  HW alpha={result.params['smoothing_level']:.3f}  "
-        f"beta={result.params['smoothing_trend']:.3f}  "
-        f"gamma={result.params['smoothing_seasonal']:.3f}"
-    )
-
-    return result
-
+        seasonal_periods=52
+    ).fit()
 
 # =====================================================
-# PLOT CONFIG
+# PLOTTING
 # =====================================================
 COL_TITLES = [
-    "Baseline ARIMA\n(no weighting)",
-    "Baseline SARIMAX\n(no weighting)",
-    f"EWMA-ARIMA\n(span={EWMA_SPAN})",
-    f"EWMA-SARIMAX\n(span={EWMA_SPAN})",
-    "Holt-Winters ETS\n(recency built-in)",
+    "ARIMA",
+    "SARIMAX",
+    "EWMA-ARIMA",
+    "EWMA-SARIMAX",
+    "Holt-Winters"
 ]
 
-fig, axes = plt.subplots(
-    nrows=len(BRANCHES),
-    ncols=5,
-    figsize=(22, 5 * len(BRANCHES)),
-    sharex=False
-)
+for subtype in top_subtypes:
 
-fig.suptitle(
-    f"{SUBTYPE} — Forecast Method Comparison: {' vs '.join(BRANCHES)}",
-    fontsize=14,
-    y=1.01
-)
+    fig, axes = plt.subplots(len(BRANCHES), 5, figsize=(22, 5 * len(BRANCHES)))
 
-# =====================================================
-# MAIN LOOP
-# =====================================================
-for r, branch in enumerate(BRANCHES):
+    for r, branch in enumerate(BRANCHES):
 
-    print(f"\n{'='*60}\n  {branch} | {SUBTYPE}\n{'='*60}")
+        ts = build_time_series(df, branch, subtype)
 
-    ts = build_time_series(df, branch, SUBTYPE)
+        ts_train = ts[ts.index < FORECAST_START]
+        ts_test  = ts[ts.index >= FORECAST_START]
 
-    ts_train = ts[ts.index < FORECAST_START]
-    ts_test  = ts[ts.index >= FORECAST_START]
+        fw = len(ts_test)
 
-    fw = len(ts_test)
+        ts_smooth = apply_ewma(ts_train)
 
-    print(f"  Train weeks: {len(ts_train)} | Test weeks: {fw}")
+        # Fit models
+        m0 = fit_arima(ts_train)
+        m1 = fit_sarimax(ts_train)
+        m2 = fit_arima(ts_smooth)
+        m3 = fit_sarimax(ts_smooth)
+        m4 = fit_hw(ts_train)
 
-    ts_train_smooth = apply_ewma(ts_train)
+        forecasts = [
+            m0.forecast(fw),
+            m1.forecast(fw),
+            m2.forecast(fw),
+            m3.forecast(fw),
+            m4.forecast(fw)
+        ]
 
-    # Skip bad cases
-    if ts.sum() == 0 or len(ts_train) < 52 or fw == 0:
-        print("  ⚠ Skipping — no data, insufficient training history, or empty test set.")
-        for c in range(5):
-            axes[r][c].set_visible(False)
-        continue
+        for fc in forecasts:
+            fc.index = ts_test.index
 
-    # --- Fit models ---
-    print("  Fitting Baseline ARIMA...")
-    r0_arima = fit_arima(ts_train)
+        for c, (fc, title) in enumerate(zip(forecasts, COL_TITLES)):
 
-    print("  Fitting Baseline SARIMAX...")
-    r1_sarimax = fit_sarimax(ts_train)
+            ax = axes[r][c]
 
-    print("  Fitting EWMA-ARIMA...")
-    r2_arima = fit_arima(ts_train_smooth)
+            ax.plot(ts_train, alpha=0.3, label="Train")
 
-    print("  Fitting EWMA-SARIMAX...")
-    r3_sarimax = fit_sarimax(ts_train_smooth)
+            if c in [2,3]:
+                ax.plot(ts_smooth, label="Smoothed")
 
-    print("  Fitting Holt-Winters...")
-    r4_hw = fit_holtwinters(ts_train)
+            ax.plot(ts_test, label="Actual")
+            ax.plot(fc, linestyle="--", label="Forecast")
 
-    # --- Forecasts ---
-    forecasts = [
-        r0_arima.forecast(steps=fw),
-        r1_sarimax.forecast(steps=fw),
-        r2_arima.forecast(steps=fw),
-        r3_sarimax.forecast(steps=fw),
-        r4_hw.forecast(steps=fw),
-    ]
+            ax.axvline(pd.Timestamp(FORECAST_START), linestyle=":")
 
-    for fc in forecasts:
-        fc.index = ts_test.index
+            if c == 0:
+                ax.set_ylabel(branch)
 
-    # --- Plot ---
-    for c, (fc, col_title) in enumerate(zip(forecasts, COL_TITLES)):
+            if r == 0:
+                ax.set_title(title)
 
-        ax = axes[r][c]
-        is_ewma_col = c in (2, 3)
+            ax.grid(alpha=0.3)
 
-        # Raw train
-        ax.plot(
-            ts_train.index,
-            ts_train.values,
-            linewidth=0.8,
-            alpha=0.25,
-            color="steelblue",
-            label="Train (raw)"
-        )
+            if r == 0 and c == 4:
+                ax.legend(fontsize=7)
 
-        # Smoothed train
-        if is_ewma_col:
-            ax.plot(
-                ts_train_smooth.index,
-                ts_train_smooth.values,
-                linewidth=1.2,
-                color="steelblue",
-                label="Train (EWMA)"
-            )
-
-        # Actual
-        ax.plot(
-            ts_test.index,
-            ts_test.values,
-            linewidth=1.2,
-            color="green",
-            label="Actual"
-        )
-
-        # Forecast
-        ax.plot(
-            fc.index,
-            fc.values,
-            linewidth=1.4,
-            linestyle="--",
-            color="orange",
-            label="Forecast"
-        )
-
-        # Split line
-        ax.axvline(
-            pd.Timestamp(FORECAST_START),
-            color="gray",
-            linestyle=":",
-            linewidth=0.8,
-            label="Split"
-        )
-
-        # Labels
-        if c == 0:
-            ax.set_ylabel(f"{branch}\nUnits on Rent", fontsize=9)
-        else:
-            ax.set_ylabel("")
-
-        if r == 0:
-            ax.set_title(col_title, fontsize=9, fontweight="bold")
-
-        ax.set_xlabel("Week", fontsize=7)
-        ax.tick_params(axis="x", labelsize=6, rotation=30)
-        ax.legend(fontsize=6)
-
-plt.tight_layout()
-plt.show()
+    plt.suptitle(subtype)
+    plt.tight_layout()
+    plt.show()

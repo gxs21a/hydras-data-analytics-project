@@ -18,7 +18,7 @@ data["StartDateTime"] = pd.to_datetime(data["StartDateTime"])
 data["EndDateTime"] = pd.to_datetime(data["EndDateTime"])
 
 START_DATE = "2022-07-01"
-END_DATE = "2026-03-31"
+END_DATE = "2026-01-31"
 
 # Only keep StartDateTime between start and end date
 data = data[
