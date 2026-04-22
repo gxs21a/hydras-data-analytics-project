@@ -11,8 +11,8 @@ BRANCHES  = ["Dallas", "Pittsburgh"]   # only these two
 SUBTYPE   = "Respiratory"              # only Respiratory
 
 SERIES_START   = "2023-01-01"
-SERIES_END     = "2025-12-31"
-FORECAST_START = "2025-06-01"
+SERIES_END     = "2026-03-31"
+FORECAST_START = "2025-10-01"  # gives ~26 weeks of test data to forecast against
 
 EWMA_SPAN = 12
 

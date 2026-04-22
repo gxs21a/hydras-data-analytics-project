@@ -11,8 +11,8 @@ BRANCHES  = ["Rochester", "Pittsburgh"]
 SUBTYPE   = "Ventilator"   # MUST match ModelSubTypeName exactly
 
 SERIES_START   = "2023-01-01"
-SERIES_END     = "2025-12-31"
-FORECAST_START = "2026-03-01"
+SERIES_END     = "2026-03-31"
+FORECAST_START = "2025-10-01"  # gives ~26 weeks of test data to forecast against
 
 EWMA_SPAN = 12
 
@@ -20,7 +20,8 @@ EWMA_SPAN = 12
 # LOAD DATA
 # =====================================================
 df = pd.read_csv(
-    '/Users/GeorgiaSiegel/OneDrive - US Med-Equip, LLC/Desktop/hydras-data-analytics-project/data/clean/cleaned_data_NEW_v2.csv'
+    '/Users/GeorgiaSiegel/OneDrive - US Med-Equip, LLC/Desktop/hydras-data-analytics-project/data/clean/cleaned_data_NEW_v2.csv',
+    low_memory=False
 )
 
 print("Number of rows in dataset: ", df.shape[0])
@@ -29,8 +30,12 @@ print("Number of rows in dataset: ", df.shape[0])
 df["Delivery_CallDateTime"] = pd.to_datetime(df["Delivery_CallDateTime"])
 df["EndDateTime"] = pd.to_datetime(df["EndDateTime"])
 
+# Strip whitespace from key columns
+df["ModelSubTypeName"] = df["ModelSubTypeName"].str.strip()
+df["Delivery_BranchName"] = df["Delivery_BranchName"].str.strip()
+
 # =====================================================
-# CLEAN SUBTYPE COLUMN (IMPORTANT)
+# CLEAN SUBTYPE COLUMN
 # =====================================================
 df = df.dropna(subset=["ModelSubTypeName"])
 df = df[df["ModelSubTypeName"] != "Unknown"]
@@ -45,7 +50,7 @@ print(df["ModelSubTypeName"].value_counts().head(10))
 def build_time_series(df, branch, subtype, start=SERIES_START, end=SERIES_END):
     mask = (
         (df["Delivery_BranchName"] == branch) &
-        (df["ModelSubTypeName"] == subtype)   # ✅ USING SUBTYPE NOW
+        (df["ModelSubTypeName"] == subtype)
     )
 
     df_f = df[mask].copy()
@@ -122,7 +127,6 @@ COL_TITLES = [
     "Holt-Winters ETS\n(recency built-in)",
 ]
 
-
 fig, axes = plt.subplots(
     nrows=len(BRANCHES),
     ncols=5,
@@ -131,7 +135,7 @@ fig, axes = plt.subplots(
 )
 
 fig.suptitle(
-    f"{SUBTYPE} — Forecast Method Comparison: Dallas vs Pittsburgh",
+    f"{SUBTYPE} — Forecast Method Comparison: {' vs '.join(BRANCHES)}",
     fontsize=14,
     y=1.01
 )
@@ -150,11 +154,13 @@ for r, branch in enumerate(BRANCHES):
 
     fw = len(ts_test)
 
+    print(f"  Train weeks: {len(ts_train)} | Test weeks: {fw}")
+
     ts_train_smooth = apply_ewma(ts_train)
 
     # Skip bad cases
-    if ts.sum() == 0 or len(ts_train) < 52:
-        print("  ⚠ Skipping — no data or insufficient training history.")
+    if ts.sum() == 0 or len(ts_train) < 52 or fw == 0:
+        print("  ⚠ Skipping — no data, insufficient training history, or empty test set.")
         for c in range(5):
             axes[r][c].set_visible(False)
         continue
