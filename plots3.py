@@ -8,7 +8,7 @@ from statsmodels.tsa.holtwinters import ExponentialSmoothing
 # CONFIG
 # =====================================================
 BRANCHES  = ["Pittsburgh", "Albuquerque"]
-SUBTYPE   = "Infusion Pump/Single Channel"   # MUST match ModelSubTypeName exactly
+SUBTYPE   = "Ventilator"   # MUST match ModelSubTypeName exactly
 
 SERIES_START   = "2023-01-01"
 SERIES_END     = "2025-12-31"
