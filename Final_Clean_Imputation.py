@@ -38,8 +38,8 @@ data = data[
 
 print("Missing EndDateTime AFTER filtering:", data["EndDateTime"].isna().sum())
 
-# Cut off EndDateTime in 2026, but preserve rows with missing EndDateTime for imputation
-data = data[(data["EndDateTime"] <= END_DATE) | (data["EndDateTime"].isna())]
+# Cut off EndDateTime in 2026, but preserve rows with missing EndDateTime for imputation REVISIT IF NECESSARY!!!!
+# data = data[(data["EndDateTime"] <= END_DATE) | (data["EndDateTime"].isna())]
 
 # Count rows where Delivery_CallDateTime is after EndDateTime
 count_invalid = (data["Delivery_CallDateTime"] > data["EndDateTime"]).sum()

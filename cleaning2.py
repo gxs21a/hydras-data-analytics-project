@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 # LOAD DATA
 # =====================================================
 data = pd.read_csv(
-    '/Users/GeorgiaSiegel/OneDrive - US Med-Equip, LLC/Desktop/hydras-data-analytics-project/data/raw/rentals_all.csv',
+    '/Users/GeorgiaSiegel/OneDrive - US Med-Equip, LLC/Desktop/hydras-data-analytics-project/data/raw/rentals.csv',
     low_memory=False
 )
 

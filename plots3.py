@@ -7,12 +7,12 @@ from statsmodels.tsa.holtwinters import ExponentialSmoothing
 # =====================================================
 # CONFIG
 # =====================================================
-BRANCHES  = ["Rochester", "Pittsburgh"]
-SUBTYPE   = "Ventilator"   # MUST match ModelSubTypeName exactly
+BRANCHES  = ["Pittsburgh", "Albuquerque"]
+SUBTYPE   = "Infusion Pump/Single Channel"   # MUST match ModelSubTypeName exactly
 
 SERIES_START   = "2023-01-01"
 SERIES_END     = "2025-12-31"
-FORECAST_START = "2026-03-01"
+FORECAST_START = "2025-06-01"
 
 EWMA_SPAN = 12
 
