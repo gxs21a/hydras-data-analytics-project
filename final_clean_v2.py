@@ -36,7 +36,6 @@ END_DATE   = "2026-03-31"
 # NOT imputed with a mean duration.
 CENSORED_END = pd.Timestamp(END_DATE)
 
-
 # Only keep Delivery_CallDateTime between start and end date
 data = data[
     (data["Delivery_CallDateTime"] >= START_DATE)
@@ -54,7 +53,6 @@ print(f"Number of rows where Delivery_CallDateTime is after EndDateTime: {count_
 data = data[(data["EndDateTime"] > data["Delivery_CallDateTime"]) | (data["EndDateTime"].isna())]
 
 print("Number of rows in cleaned data: ", data.shape[0])
-
 
 # =====================================================
 # BRANCH NAME STANDARDISATION
