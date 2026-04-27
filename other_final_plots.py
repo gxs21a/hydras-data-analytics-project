@@ -10,7 +10,7 @@ from statsmodels.tsa.holtwinters import ExponentialSmoothing
 # =====================================================
 # CONFIG
 # =====================================================
-BRANCHES  = ["Pittsburgh", "Albuquerque"]
+BRANCHES  = ["Pittsburgh", "Albuquerque"] # Sant Antonio, Tampa, Miami, Oklahoma City, Allendale
 SUBTYPE   = "Ventilator"   # must match the Subtype column in cleaned data
 
 # Date range mirrors the cleaning pipeline:
