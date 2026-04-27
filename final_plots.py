@@ -9,7 +9,7 @@ from statsmodels.tsa.holtwinters import ExponentialSmoothing
 # =====================================================
 # CONFIG
 # =====================================================
-BRANCHES  = ["Pittsburgh", "Dallas"]
+BRANCHES  = ["Pittsburgh", "Albuquerque"]
 SUBTYPE   = "Ventilator"   # MUST match ModelSubTypeName exactly
 
 SERIES_START   = "2023-01-01"
