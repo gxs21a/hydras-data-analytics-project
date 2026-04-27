@@ -1,0 +1,9 @@
+Branch,Subtype,Horizon,SARIMAX_RMSE,Base_RMSE,SARIMAX_MAE,Base_MAE
+Pittsburgh,Ventilator,1w,5.4,7.0,5.4,7.0
+Pittsburgh,Ventilator,3w,5.89,8.83,5.66,8.67
+Pittsburgh,Ventilator,6w,4.81,11.42,4.29,10.83
+Pittsburgh,Ventilator,12w,6.28,15.21,4.75,13.75
+Baltimore,Ventilator,1w,3.88,50.0,3.88,50.0
+Baltimore,Ventilator,3w,5.24,53.39,5.07,53.33
+Baltimore,Ventilator,6w,5.2,63.02,4.74,62.33
+Baltimore,Ventilator,12w,8.52,57.07,7.25,56.33

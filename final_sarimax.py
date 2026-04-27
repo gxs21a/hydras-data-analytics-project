@@ -8,7 +8,7 @@ from statsmodels.tsa.statespace.sarimax import SARIMAX
 # ─────────────────────────────────────────────
 # CONFIG
 # ─────────────────────────────────────────────
-BRANCHES       = ["Pittsburgh", "Miami"]
+BRANCHES       = ["Pittsburgh", "Baltimore"]
 SUBTYPES       = ["Ventilator"]
 SERIES_START   = "2023-01-01"
 SERIES_END     = "2026-03-24"
