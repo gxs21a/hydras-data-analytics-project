@@ -9,12 +9,12 @@ from statsmodels.tsa.holtwinters import ExponentialSmoothing
 # =====================================================
 # CONFIG
 # =====================================================
-BRANCHES  = ["Pittsburgh", "Dallas"]
+BRANCHES  = ["Pittsburgh", "Baltimore"]
 SUBTYPE   = "Ventilator"   # MUST match ModelSubTypeName exactly
 
 SERIES_START   = "2023-01-01"
 SERIES_END     = "2026-03-24"
-FORECAST_START = "2026-09-01"
+FORECAST_START = "2025-09-01"
 
 # Must match the CENSORED_END used in the cleaning script.
 # Any rental whose EndDateTime was null in the raw data was set to this
