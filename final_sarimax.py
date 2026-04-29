@@ -182,6 +182,7 @@ for row, (branch, subtype) in enumerate(combos):
     ax.legend(lines1 + lines2, labels1 + labels2, fontsize=6, ncol=2)
     ax.set_ylim(bottom=0)
 
+
 # ─────────────────────────────────────────────
 # SUMMARY
 # ─────────────────────────────────────────────
@@ -202,3 +203,103 @@ plt.show()
 
 metrics_df.to_csv(metrics_path, index=False)
 print(f"\nSaved: {plot_path}\n       {metrics_path}")
+
+# MAPE Plot for presentation!!
+
+import matplotlib.patches as mpatches
+
+def plot_mape_executive(all_metrics):
+    """
+    Executive-facing MAPE chart: AI Model vs Baseline, per city.
+    Audience: non-technical stakeholders.
+    """
+    cities   = ["Pittsburgh", "Baltimore"]
+    horizons = ["1 Week", "2 Weeks", "4 Weeks", "12 Weeks"]
+    h_keys   = ["1w", "2w", "4w", "12w"]
+
+    fig, axes = plt.subplots(1, 2, figsize=(16, 7), sharey=False)
+    fig.patch.set_facecolor("#0F1923")
+
+    TEAL    = "#00C9A7"
+    AMBER   = "#FFB547"
+    BG      = "#0F1923"
+    CARD    = "#162330"
+    LABEL   = "#E8EDF2"
+    MUTED   = "#7A8FA6"
+
+    df = {
+        (m["Branch"], m["Horizon"]): m
+        for m in all_metrics
+        if m["Subtype"] == "Ventilator"
+    }
+
+    for ax, city in zip(axes, cities):
+        s_mape = [df.get((city, h), {}).get("SARIMAX_MAPE", np.nan) for h in h_keys]
+        b_mape = [df.get((city, h), {}).get("Base_MAPE",    np.nan) for h in h_keys]
+
+        x = np.arange(len(horizons))
+        w = 0.32
+
+        ax.set_facecolor(CARD)
+        for spine in ax.spines.values():
+            spine.set_visible(False)
+        ax.tick_params(colors=LABEL, labelsize=10)
+        ax.yaxis.set_tick_params(color=MUTED)
+        ax.xaxis.set_tick_params(bottom=False)
+        ax.set_axisbelow(True)
+        ax.yaxis.grid(True, color="#1E3040", linewidth=0.8)
+
+        bars_base  = ax.bar(x - w/2, b_mape, w, color=AMBER, alpha=0.45,
+                            label="Baseline (No AI)", zorder=3, linewidth=0)
+        bars_model = ax.bar(x + w/2, s_mape, w, color=TEAL,  alpha=0.90,
+                            label="AI Model",         zorder=3, linewidth=0)
+
+        # Value labels + improvement callout
+        for xi, (sv, bv) in enumerate(zip(s_mape, b_mape)):
+            if not (np.isnan(sv) or np.isnan(bv)):
+                improvement = bv - sv
+                ax.text(xi + w/2, sv + 0.4, f"{sv:.1f}%",
+                        ha="center", va="bottom", fontsize=9,
+                        fontweight="bold", color=TEAL)
+                ax.text(xi - w/2, bv + 0.4, f"{bv:.1f}%",
+                        ha="center", va="bottom", fontsize=9,
+                        fontweight="bold", color=AMBER)
+                if improvement > 0:
+                    ax.text(xi, max(sv, bv) + 3.5,
+                            f"↓ {improvement:.1f}pp better",
+                            ha="center", va="bottom", fontsize=8,
+                            color="#A8F0D8", fontstyle="italic")
+
+        ax.set_xticks(x)
+        ax.set_xticklabels(horizons, color=LABEL, fontsize=10)
+        ax.set_ylabel("Forecast Error  (lower = more accurate)", color=MUTED, fontsize=10)
+        ax.set_ylim(bottom=0)
+        ax.set_title(f"📍 {city}", fontsize=15, fontweight="bold",
+                     color=LABEL, pad=14)
+
+    # Shared legend
+    legend_patches = [
+        mpatches.Patch(color=AMBER, alpha=0.65, label="Baseline  (no AI — repeats past patterns)"),
+        mpatches.Patch(color=TEAL,  alpha=0.90, label="AI Model  (learns demand trends)"),
+    ]
+    fig.legend(handles=legend_patches, loc="lower center", ncol=2,
+               frameon=False, fontsize=11, labelcolor=LABEL,
+               bbox_to_anchor=(0.5, -0.04))
+
+    fig.suptitle(
+        "How accurately does each approach predict\nVentilator demand — by city & forecast window?",
+        fontsize=16, fontweight="bold", color=LABEL, y=1.01, linespacing=1.5
+    )
+    fig.text(0.5, 0.94,
+             "MAPE = % error vs actual units on rent  ·  Lower bars mean fewer costly over- or under-orders",
+             ha="center", fontsize=10, color=MUTED)
+
+    plt.tight_layout(rect=[0, 0.04, 1, 1])
+    plt.savefig(os.path.join(PLOTS_DIR, "mape_executive.png"),
+                dpi=150, bbox_inches="tight", facecolor=BG)
+    plt.show()
+    print("Saved: mape_executive.png")
+
+
+# ── Call it after all_metrics is populated ──
+plot_mape_executive(all_metrics)
