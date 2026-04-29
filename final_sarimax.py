@@ -13,7 +13,7 @@ SUBTYPES       = ["Ventilator"]
 SERIES_START   = "2023-01-01"
 SERIES_END     = "2026-03-24"
 FORECAST_START = "2025-09-01"
-HORIZONS       = [1, 3, 6, 12]
+HORIZONS       = [1, 2, 4, 12]
 MIN_WEEKS_SEASONAL = 104   # need 2 full 52-week cycles for seasonal SARIMAX
 
 DATA_PATH = (
@@ -68,7 +68,10 @@ def seasonal_naive(ts_train, steps, season=52):
 def metrics(actual, pred):
     rmse = np.sqrt(np.mean((actual - pred) ** 2))
     mae  = np.mean(np.abs(actual - pred))
-    return round(rmse, 2), round(mae, 2)
+    # Avoid division by zero — mask out zero actuals
+    mask = actual != 0
+    mape = np.mean(np.abs((actual[mask] - pred[mask]) / actual[mask])) * 100 if mask.any() else np.nan
+    return round(rmse, 2), round(mae, 2), round(mape, 2)
 
 
 # ─────────────────────────────────────────────
@@ -100,19 +103,20 @@ for row, (branch, subtype) in enumerate(combos):
 
     # ── Metrics table ──────────────────────────────────────────
     print(f"  {'Horizon':>8}  {'SARIMAX RMSE':>13}  {'Base RMSE':>10}  "
-          f"{'SARIMAX MAE':>12}  {'Base MAE':>9}")
-    print(f"  {'─'*60}")
+          f"{'SARIMAX MAE':>12}  {'Base MAE':>9}  {'SARIMAX MAPE':>13}  {'Base MAPE':>10}")
+    print(f"  {'─'*90}")
 
     row_metrics = []
     for h in HORIZONS:
         act = ts_test.iloc[:h].values
-        s_rmse, s_mae = metrics(act, fc.iloc[:h].values)
-        b_rmse, b_mae = metrics(act, baseline[:h])
+        s_rmse, s_mae, s_mape = metrics(act, fc.iloc[:h].values)
+        b_rmse, b_mae, b_mape = metrics(act, baseline[:h])
         print(f"  {str(h)+'w':>8}  {s_rmse:>13.2f}  {b_rmse:>10.2f}  "
-              f"{s_mae:>12.2f}  {b_mae:>9.2f}")
+              f"{s_mae:>12.2f}  {b_mae:>9.2f}  {s_mape:>12.2f}%  {b_mape:>9.2f}%")
         entry = dict(Branch=branch, Subtype=subtype, Horizon=f"{h}w",
                      SARIMAX_RMSE=s_rmse, Base_RMSE=b_rmse,
-                     SARIMAX_MAE=s_mae,  Base_MAE=b_mae)
+                     SARIMAX_MAE=s_mae,   Base_MAE=b_mae,
+                     SARIMAX_MAPE=s_mape, Base_MAPE=b_mape)
         all_metrics.append(entry)
         row_metrics.append(entry)
 
@@ -141,13 +145,15 @@ for row, (branch, subtype) in enumerate(combos):
     ax.set_title("Actual vs Predicted", fontsize=9, fontweight="bold")
     ax.legend(fontsize=7, title="Horizon", title_fontsize=7)
 
-    # ── Col 2: RMSE/MAE — SARIMAX vs Baseline ─────────────────
+    # ── Col 2: RMSE/MAE — SARIMAX vs Baseline, MAPE on twin axis ──
     ax = axes[row, 2]
-    x, w = np.arange(len(HORIZONS)), 0.2
+    x, w = np.arange(len(HORIZONS)), 0.15
     s_rmse = [m["SARIMAX_RMSE"] for m in row_metrics]
     b_rmse = [m["Base_RMSE"]    for m in row_metrics]
     s_mae  = [m["SARIMAX_MAE"]  for m in row_metrics]
     b_mae  = [m["Base_MAE"]     for m in row_metrics]
+    s_mape = [m["SARIMAX_MAPE"] for m in row_metrics]
+    b_mape = [m["Base_MAPE"]    for m in row_metrics]
 
     ax.bar(x - 1.5*w, s_rmse, w, color="steelblue",  alpha=0.85, label="SARIMAX RMSE")
     ax.bar(x - 0.5*w, b_rmse, w, color="steelblue",  alpha=0.40, label="Baseline RMSE")
@@ -159,10 +165,22 @@ for row, (branch, subtype) in enumerate(combos):
         for xp, v in zip(offsets, vals):
             ax.text(xp, v + 0.05, f"{v:.1f}", ha="center", va="bottom", fontsize=6)
 
+    # MAPE on twin axis (percentage scale separate from unit-based errors)
+    ax2 = ax.twinx()
+    ax2.plot(x, s_mape, color="green", marker="o", lw=1.5, ms=5, label="SARIMAX MAPE%")
+    ax2.plot(x, b_mape, color="green", marker="s", lw=1.0, ms=5, ls="--", label="Baseline MAPE%")
+    ax2.set_ylabel("MAPE (%)", color="green", fontsize=8)
+    ax2.tick_params(axis="y", labelcolor="green", labelsize=7)
+
     ax.set_xticks(x); ax.set_xticklabels([f"{h}w" for h in HORIZONS], fontsize=8)
     ax.set_ylabel("Error (units)")
-    ax.set_title("SARIMAX vs Baseline — RMSE & MAE", fontsize=9, fontweight="bold")
-    ax.legend(fontsize=6, ncol=2); ax.set_ylim(bottom=0)
+    ax.set_title("SARIMAX vs Baseline — RMSE, MAE & MAPE", fontsize=9, fontweight="bold")
+
+    # Combine legends from both axes
+    lines1, labels1 = ax.get_legend_handles_labels()
+    lines2, labels2 = ax2.get_legend_handles_labels()
+    ax.legend(lines1 + lines2, labels1 + labels2, fontsize=6, ncol=2)
+    ax.set_ylim(bottom=0)
 
 # ─────────────────────────────────────────────
 # SUMMARY
