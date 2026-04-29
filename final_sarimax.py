@@ -3,6 +3,7 @@ import warnings
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 
 # ─────────────────────────────────────────────
@@ -206,8 +207,6 @@ print(f"\nSaved: {plot_path}\n       {metrics_path}")
 
 # MAPE Plot for presentation!!
 
-import matplotlib.patches as mpatches
-
 def plot_mape_executive(all_metrics):
     """
     Executive-facing MAPE chart: AI Model vs Baseline, per city.
@@ -217,15 +216,14 @@ def plot_mape_executive(all_metrics):
     horizons = ["1 Week", "2 Weeks", "4 Weeks", "12 Weeks"]
     h_keys   = ["1w", "2w", "4w", "12w"]
 
-    fig, axes = plt.subplots(1, 2, figsize=(16, 7), sharey=False)
-    fig.patch.set_facecolor("#0F1923")
+    fig, axes = plt.subplots(1, 2, figsize=(20, 9))  # wider + taller
+    fig.patch.set_facecolor("white")
 
-    TEAL    = "#00C9A7"
-    AMBER   = "#FFB547"
-    BG      = "#0F1923"
-    CARD    = "#162330"
-    LABEL   = "#E8EDF2"
-    MUTED   = "#7A8FA6"
+    TEAL    = "#1D9E75"
+    AMBER   = "#D4A843"
+    CARD    = "#F8F9FA"
+    LABEL   = "#44448F"
+    MUTED   = "#6B7280"
 
     df = {
         (m["Branch"], m["Horizon"]): m
@@ -243,63 +241,77 @@ def plot_mape_executive(all_metrics):
         ax.set_facecolor(CARD)
         for spine in ax.spines.values():
             spine.set_visible(False)
-        ax.tick_params(colors=LABEL, labelsize=10)
-        ax.yaxis.set_tick_params(color=MUTED)
+        ax.tick_params(colors=LABEL, labelsize=11)
         ax.xaxis.set_tick_params(bottom=False)
         ax.set_axisbelow(True)
-        ax.yaxis.grid(True, color="#1E3040", linewidth=0.8)
+        ax.yaxis.grid(True, color="#E5E7EB", linewidth=0.8)
 
-        bars_base  = ax.bar(x - w/2, b_mape, w, color=AMBER, alpha=0.45,
-                            label="Baseline (No AI)", zorder=3, linewidth=0)
-        bars_model = ax.bar(x + w/2, s_mape, w, color=TEAL,  alpha=0.90,
-                            label="AI Model",         zorder=3, linewidth=0)
+        ax.bar(x - w/2, b_mape, w, color=AMBER, alpha=0.85,
+               label="Baseline", zorder=3, linewidth=0)
+        ax.bar(x + w/2, s_mape, w, color=TEAL, alpha=0.90,
+               label="Our Model", zorder=3, linewidth=0)
 
-        # Value labels + improvement callout
+        # ── Value labels: stacked above bar, no overlap ──────────
+        bar_max = max([v for v in b_mape + s_mape if not np.isnan(v)], default=1)
+        label_pad   = bar_max * 0.02   # small gap between bar top and number
+        improve_pad = bar_max * 0.10   # gap above the taller bar for "↓ Xpp" line
+
         for xi, (sv, bv) in enumerate(zip(s_mape, b_mape)):
-            if not (np.isnan(sv) or np.isnan(bv)):
-                improvement = bv - sv
-                ax.text(xi + w/2, sv + 0.4, f"{sv:.1f}%",
-                        ha="center", va="bottom", fontsize=9,
-                        fontweight="bold", color=TEAL)
-                ax.text(xi - w/2, bv + 0.4, f"{bv:.1f}%",
-                        ha="center", va="bottom", fontsize=9,
-                        fontweight="bold", color=AMBER)
-                if improvement > 0:
-                    ax.text(xi, max(sv, bv) + 3.5,
-                            f"↓ {improvement:.1f}pp better",
-                            ha="center", va="bottom", fontsize=8,
-                            color="#A8F0D8", fontstyle="italic")
+            if np.isnan(sv) or np.isnan(bv):
+                continue
+
+            # Baseline value label
+            ax.text(xi - w/2, bv + label_pad,
+                    f"{bv:.1f}%",
+                    ha="center", va="bottom",
+                    fontsize=9, fontweight="bold", color="#7A5C1E")
+
+            # AI model value label
+            ax.text(xi + w/2, sv + label_pad,
+                    f"{sv:.1f}%",
+                    ha="center", va="bottom",
+                    fontsize=9, fontweight="bold", color="#0F6E56")
+
+            # Improvement callout — always above the taller of the two bars
+            improvement = bv - sv
+            if improvement > 0:
+                top = max(sv, bv) + improve_pad
+                ax.text(xi, top,
+                        f"↓ {improvement:.1f}pp better",
+                        ha="center", va="bottom",
+                        fontsize=8, color=TEAL, fontstyle="italic")
+
+        # ── Axis headroom so callouts aren't clipped ─────────────
+        ax.set_ylim(0, bar_max * 1.30)
 
         ax.set_xticks(x)
-        ax.set_xticklabels(horizons, color=LABEL, fontsize=10)
-        ax.set_ylabel("Forecast Error  (lower = more accurate)", color=MUTED, fontsize=10)
-        ax.set_ylim(bottom=0)
-        ax.set_title(f"📍 {city}", fontsize=15, fontweight="bold",
-                     color=LABEL, pad=14)
+        ax.set_xticklabels(horizons, color=LABEL, fontsize=11)
+        ax.set_ylabel("Forecast Error  (lower = more accurate)",
+                      color=MUTED, fontsize=11, labelpad=10)
+        ax.set_title(f"{city}", fontsize=16, fontweight="bold",
+                     color=LABEL, pad=16)
 
-    # Shared legend
+    # ── Legend ────────────────────────────────────────────────────
     legend_patches = [
-        mpatches.Patch(color=AMBER, alpha=0.65, label="Baseline  (no AI — repeats past patterns)"),
-        mpatches.Patch(color=TEAL,  alpha=0.90, label="AI Model  (learns demand trends)"),
+        mpatches.Patch(color=AMBER, alpha=0.85, label="Baseline"),
+        mpatches.Patch(color=TEAL,  alpha=0.90, label="Our Model"),
     ]
     fig.legend(handles=legend_patches, loc="lower center", ncol=2,
-               frameon=False, fontsize=11, labelcolor=LABEL,
-               bbox_to_anchor=(0.5, -0.04))
+               frameon=False, fontsize=12, labelcolor=LABEL,
+               bbox_to_anchor=(0.5, -0.02))
 
     fig.suptitle(
-        "How accurately does each approach predict\nVentilator demand — by city & forecast window?",
-        fontsize=16, fontweight="bold", color=LABEL, y=1.01, linespacing=1.5
+        "How accurately does each approach predict Ventilator demand?",
+        fontsize=17, fontweight="bold", color=LABEL, y=1.02
     )
-    fig.text(0.5, 0.94,
+    fig.text(0.5, 0.97,
              "MAPE = % error vs actual units on rent  ·  Lower bars mean fewer costly over- or under-orders",
-             ha="center", fontsize=10, color=MUTED)
+             ha="center", fontsize=11, color=MUTED)
 
-    plt.tight_layout(rect=[0, 0.04, 1, 1])
+    plt.tight_layout(rect=[0, 0.05, 1, 0.96])
     plt.savefig(os.path.join(PLOTS_DIR, "mape_executive.png"),
-                dpi=150, bbox_inches="tight", facecolor=BG)
+                dpi=150, bbox_inches="tight", facecolor="white")
     plt.show()
     print("Saved: mape_executive.png")
 
-
-# ── Call it after all_metrics is populated ──
 plot_mape_executive(all_metrics)
